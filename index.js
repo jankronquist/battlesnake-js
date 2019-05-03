@@ -34,6 +34,10 @@ app.post('/start', (request, response) => {
 })
 
 const EMPTY = ' ';
+const FOOD = 'F';
+const SNAKE = 'S';
+
+const MOVES = ['up','down','left','right'];
 
 const directions = {
   up: { x: 0, y: -1 },
@@ -72,30 +76,63 @@ var shuffle = function (array) {
 
 // Handle POST request to '/move'
 app.post('/move', (request, response) => {
+  try {
+
   // NOTE: Do something here to generate your move
   console.log('POST');
   const { height, width } = request.body.board;
   
   const board = Array(height).fill(EMPTY).map(() => Array(width).fill(EMPTY));
-  request.body.board.snakes.forEach((snake) => snake.body.forEach(({x,y}) => board[y][x] = 'S'));
+  request.body.board.snakes.forEach((snake) => snake.body.forEach(({x,y}) => board[y][x] = SNAKE));
+  request.body.board.food.forEach(({x,y}) => board[y][x] = FOOD);
+  const head = request.body.you.body[0];
 
-  for (var retries = 0; retries<10; retries++) {
-    const move = ['up','down','left','right'][Math.floor(4*Math.random())];
-    const head = request.body.you.body[0];
-    console.log('head=', head, ' trying move=', move);
-    const newY = head.y + directions[move].y;
-    const newX = head.x + directions[move].x;
-    if (board[newY][newX] === EMPTY && newX >= 0 && newX < width && newY >= 0 && newY < height) {
-      console.log('move=', move);
-      return response.json({
-        move
-      })
+  const moves = shuffle(MOVES);
+
+
+  const calculateScore = (board, pos, move, depth) => {
+    const newY = pos.y + directions[move].y;
+    const newX = pos.x + directions[move].x;
+    if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
+      if (board[newY][newX] === FOOD) {
+        return 10;
+      } else if (board[newY][newX] === EMPTY) {
+        if (depth < 6) {
+          board[newY][newX] = SNAKE;
+          const childScores = ['up','down','left','right'].map(move => calculateScore(board, { x: newX, y: newY }, move, depth + 1));
+          board[newY][newX] = EMPTY;
+          return Math.max(...childScores);
+        }
+        return 1;
+      }
     }
-  }
-  console.log('FAILEDqwe');
+    return -1;
+  };
+  const moveScores = moves.map(move => {
+    return {
+      move,
+      score: calculateScore(board, head, move, 0),
+    };
+  });
+  moveScores.sort((m1, m2) => m2.score - m1.score);
+  console.log(moveScores);
   return response.json({
-    move: 'up'
-  })
+    move: moveScores[0].move,
+  });
+  // if (safeMoves.length > 0) {
+  //   return response.json({
+  //     move: safeMoves[0]
+  //   });
+  // } else {
+  //   return response.json({
+  //     move: moves[0]
+  //   });
+  // }
+}
+catch (err) {
+  console.error(err);
+}
+
 })
 
 app.post('/end', (request, response) => {
