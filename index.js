@@ -89,6 +89,18 @@ app.post('/move', (request, response) => {
 
   const moves = shuffle(MOVES);
 
+  const calculateNeighbours = (board, pos) => {
+    return ['up','down','left','right'].map(move => {
+      const newY = pos.y + directions[move].y;
+      const newX = pos.x + directions[move].x;
+      if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
+        if (board[newY][newX] !== SNAKE) {
+          return 0;
+        }
+      }
+      return 1;
+    }).reduce((acc, cur) => acc + cur);
+  };
 
   const calculateScore = (board, pos, move, depth) => {
     const newY = pos.y + directions[move].y;
@@ -97,16 +109,17 @@ app.post('/move', (request, response) => {
       if (board[newY][newX] === FOOD) {
         return 10;
       } else if (board[newY][newX] === EMPTY) {
+        const newPos = { x: newX, y: newY };
         if (depth < 6) {
           board[newY][newX] = SNAKE;
-          const childScores = ['up','down','left','right'].map(move => calculateScore(board, { x: newX, y: newY }, move, depth + 1));
+          const childScores = ['up','down','left','right'].map(move => calculateScore(board, newPos, move, depth + 1));
           board[newY][newX] = EMPTY;
           return Math.max(...childScores);
         }
-        return 1;
+        return -calculateNeighbours(board, newPos);
       }
     }
-    return -1;
+    return -10;
   };
   const moveScores = moves.map(move => {
     return {
@@ -119,15 +132,6 @@ app.post('/move', (request, response) => {
   return response.json({
     move: moveScores[0].move,
   });
-  // if (safeMoves.length > 0) {
-  //   return response.json({
-  //     move: safeMoves[0]
-  //   });
-  // } else {
-  //   return response.json({
-  //     move: moves[0]
-  //   });
-  // }
 }
 catch (err) {
   console.error(err);
