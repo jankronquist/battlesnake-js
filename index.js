@@ -46,7 +46,6 @@ const directions = {
   left: { x: -1, y: 0 },
 };
 
-
 /**
  * Randomly shuffle an array
  * https://stackoverflow.com/a/2450976/1293256
@@ -78,11 +77,26 @@ var shuffle = function (array) {
 app.post('/move', (request, response) => {
   try {
   const { height, width } = request.body.board;
-  
+
+  const validPositionsAround = (pos) => {
+    return ['up','down','left','right'].map(move => {
+      const newY = pos.y + directions[move].y;
+      const newX = pos.x + directions[move].x;
+      if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
+        return { x: newX, y: newY };
+      }
+      return null;
+    }).filter(id => id);
+  }
+
   const board = Array(height).fill(EMPTY).map(() => Array(width).fill(EMPTY));
   request.body.board.snakes.forEach((snake) => snake.body.forEach(({x,y}) => board[y][x] = SNAKE));
   request.body.board.food.forEach(({x,y}) => board[y][x] = FOOD);
   const head = request.body.you.body[0];
+
+  const myLength = request.body.you.body.length;
+  const largerEnemies = request.body.board.snakes.filter(snake => snake.body.length > myLength);
+  [].concat(...largerEnemies.map(snake => validPositionsAround(snake.body[0]))).forEach(({x,y}) => board[y][x] = SNAKE);
 
   const moves = shuffle(MOVES);
 
