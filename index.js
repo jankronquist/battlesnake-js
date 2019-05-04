@@ -108,8 +108,9 @@ app.post('/move', (request, response) => {
         if (board[newY][newX] !== SNAKE) {
           return 0;
         }
+        return 2;
       }
-      return 1;
+      return 3;
     }).reduce((acc, cur) => acc + cur);
   };
 
