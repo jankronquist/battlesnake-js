@@ -77,9 +77,6 @@ var shuffle = function (array) {
 // Handle POST request to '/move'
 app.post('/move', (request, response) => {
   try {
-
-  // NOTE: Do something here to generate your move
-  console.log('POST');
   const { height, width } = request.body.board;
   
   const board = Array(height).fill(EMPTY).map(() => Array(width).fill(EMPTY));
@@ -107,10 +104,10 @@ app.post('/move', (request, response) => {
     const newX = pos.x + directions[move].x;
     if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
       if (board[newY][newX] === FOOD) {
-        return 10;
+        return 150 - depth;
       } else if (board[newY][newX] === EMPTY) {
         const newPos = { x: newX, y: newY };
-        if (depth < 6) {
+        if (depth < 9) {
           board[newY][newX] = SNAKE;
           const childScores = ['up','down','left','right'].map(move => calculateScore(board, newPos, move, depth + 1));
           board[newY][newX] = EMPTY;
@@ -119,7 +116,7 @@ app.post('/move', (request, response) => {
         return -calculateNeighbours(board, newPos);
       }
     }
-    return -10;
+    return -100 + depth;
   };
   const moveScores = moves.map(move => {
     return {
@@ -128,7 +125,8 @@ app.post('/move', (request, response) => {
     };
   });
   moveScores.sort((m1, m2) => m2.score - m1.score);
-  console.log(moveScores);
+//  console.log(moveScores);
+  console.log('length=', request.body.you.body.length);
   return response.json({
     move: moveScores[0].move,
   });
