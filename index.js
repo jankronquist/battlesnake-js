@@ -52,7 +52,7 @@ const directions = {
  * @param  {Array} array The array to shuffle
  * @return {String}      The first item in the shuffled array
  */
-var shuffle = function (array) {
+const shuffle = (array) => {
 
 	var currentIndex = array.length;
 	var temporaryValue, randomIndex;
@@ -70,7 +70,10 @@ var shuffle = function (array) {
 	}
 
 	return array;
+};
 
+const randomFrom = (array) => {
+  return array[Math.floor(Math.random() * array.length)];
 };
 
 // Handle POST request to '/move'
@@ -117,22 +120,35 @@ app.post('/move', (request, response) => {
     }).reduce((acc, cur) => acc + cur);
   };
 
+  const foodIsValuable = largerEnemies.length > 0 || request.body.you.health < 50;
+
+  let iterations = 0;
   const calculateScore = (board, pos, move, depth) => {
+    iterations++;
     const newY = pos.y + directions[move].y;
     const newX = pos.x + directions[move].x;
     if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
-      if (board[newY][newX] === FOOD) {
-        return 150 - depth;
-      } else if (board[newY][newX] === EMPTY) {
-        const newPos = { x: newX, y: newY };
-        if (depth < 9) {
-          board[newY][newX] = SNAKE;
-          const childScores = ['up','down','left','right'].map(move => calculateScore(board, newPos, move, depth + 1));
-          board[newY][newX] = EMPTY;
-          return Math.max(...childScores);
-        }
-        return -calculateNeighbours(board, newPos);
+      const current = board[newY][newX];
+      let bonus = 0;
+      if (current === SNAKE) {
+        return -100 + depth;
+      } else if (foodIsValuable && current === FOOD) {
+        bonus = 150 - depth;
       }
+      const newPos = { x: newX, y: newY };
+      if (depth < 10) {
+        board[newY][newX] = SNAKE;
+        const childScores = ['up','down','left','right'].map(move => calculateScore(board, newPos, move, depth + 1));
+        board[newY][newX] = current;
+        return Math.max(...childScores) + bonus;
+      }
+      // if (depth < 20) {
+      //   board[newY][newX] = SNAKE;
+      //   const childScore = calculateScore(board, newPos, randomFrom(MOVES), depth + 1);
+      //   board[newY][newX] = current;
+      //   return childScore + bonus;
+      // }
+      return -calculateNeighbours(board, newPos) + bonus;
     }
     return -100 + depth;
   };
@@ -145,6 +161,7 @@ app.post('/move', (request, response) => {
   moveScores.sort((m1, m2) => m2.score - m1.score);
 //  console.log(moveScores);
   console.log('length=', request.body.you.body.length);
+  console.log('iterations=', iterations);
   return response.json({
     move: moveScores[0].move,
   });
