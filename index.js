@@ -95,7 +95,10 @@ app.post('/move', (request, response) => {
   const head = request.body.you.body[0];
 
   const myLength = request.body.you.body.length;
-  const largerEnemies = request.body.board.snakes.filter(snake => snake.body.length > myLength);
+  const myId = request.body.you.id;
+  const largerEnemies = request.body.board.snakes
+    .filter(snake => snake.body.length >= myLength)
+    .filter(snake => myId !== snake.id);
   [].concat(...largerEnemies.map(snake => validPositionsAround(snake.body[0]))).forEach(({x,y}) => board[y][x] = SNAKE);
 
   const moves = shuffle(MOVES);
