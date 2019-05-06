@@ -120,7 +120,23 @@ app.post('/move', (request, response) => {
     }).reduce((acc, cur) => acc + cur);
   };
 
-  const foodIsValuable = largerEnemies.length > 0 || request.body.you.health < 50;
+  const calculateFreeArea = (board, pos, range) => {
+    const minX = Math.max(0, pos.x - range);
+    const maxX = Math.min(width, pos.x + range);
+    const minY = Math.max(0, pos.y - range);
+    const maxY = Math.min(height, pos.y + range);
+    let free = 0;
+    for (let x = minX; x < maxX; x++) {
+      for (let y = minY; y < maxY; y++) {
+        if (board[y][x] !== SNAKE) free++;
+      }
+    }
+    return free;
+  };
+
+  const foodIsValuable = request.body.board.snakes.length > 1 ||
+                         largerEnemies.length > 0 || 
+                         request.body.you.health < 50;
 
   let iterations = 0;
   const calculateScore = (board, pos, move, depth) => {
@@ -135,20 +151,33 @@ app.post('/move', (request, response) => {
       } else if (foodIsValuable && current === FOOD) {
         bonus = 150 - depth;
       }
+      if (newX === 0 || newX === width - 1) {
+        bonus--;
+      }
+      if (newY === 0 || newY === height - 1) {
+        bonus--;
+      }
       const newPos = { x: newX, y: newY };
       if (depth < 10) {
         board[newY][newX] = SNAKE;
-        const childScores = ['up','down','left','right'].map(move => calculateScore(board, newPos, move, depth + 1));
+        const childScores = MOVES.map(move => calculateScore(board, newPos, move, depth + 1));
         board[newY][newX] = current;
         return Math.max(...childScores) + bonus;
       }
+      // if (depth < 14) {
+      //   board[newY][newX] = SNAKE;
+      //   const childScores = shuffle(MOVES).slice(2).map(move => calculateScore(board, newPos, move, depth + 1));
+      //   board[newY][newX] = current;
+      //   return Math.max(...childScores) + bonus;
+      // }
       // if (depth < 20) {
       //   board[newY][newX] = SNAKE;
       //   const childScore = calculateScore(board, newPos, randomFrom(MOVES), depth + 1);
       //   board[newY][newX] = current;
       //   return childScore + bonus;
       // }
-      return -calculateNeighbours(board, newPos) + bonus;
+      // return -calculateNeighbours(board, newPos) + bonus;
+      return calculateFreeArea(board, newPos, 2) + bonus; // 5x5 = max 25
     }
     return -100 + depth;
   };
@@ -159,7 +188,7 @@ app.post('/move', (request, response) => {
     };
   });
   moveScores.sort((m1, m2) => m2.score - m1.score);
-//  console.log(moveScores);
+  console.log(moveScores);
   console.log('length=', request.body.you.body.length);
   console.log('iterations=', iterations);
   return response.json({
