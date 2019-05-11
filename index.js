@@ -36,6 +36,7 @@ app.post('/start', (request, response) => {
 const EMPTY = ' ';
 const FOOD = 'F';
 const SNAKE = 'S';
+const AVOID = 'A';
 
 const MOVES = ['up','down','left','right'];
 
@@ -80,19 +81,19 @@ const randomFrom = (array) => {
 app.post('/move', (request, response) => {
   try {
   const { height, width } = request.body.board;
+  const board = Array(height).fill(EMPTY).map(() => Array(width).fill(EMPTY));
 
   const validPositionsAround = (pos) => {
     return ['up','down','left','right'].map(move => {
       const newY = pos.y + directions[move].y;
       const newX = pos.x + directions[move].x;
-      if (newX >= 0 && newX < width && newY >= 0 && newY < height) {
+      if (newX >= 0 && newX < width && newY >= 0 && newY < height && board[newY][newX] !== SNAKE) {
         return { x: newX, y: newY };
       }
       return null;
     }).filter(id => id);
   }
 
-  const board = Array(height).fill(EMPTY).map(() => Array(width).fill(EMPTY));
   request.body.board.snakes.forEach((snake) => snake.body.forEach(({x,y}) => board[y][x] = SNAKE));
   request.body.board.food.forEach(({x,y}) => board[y][x] = FOOD);
   const head = request.body.you.body[0];
@@ -102,7 +103,7 @@ app.post('/move', (request, response) => {
   const largerEnemies = request.body.board.snakes
     .filter(snake => snake.body.length >= myLength)
     .filter(snake => myId !== snake.id);
-  [].concat(...largerEnemies.map(snake => validPositionsAround(snake.body[0]))).forEach(({x,y}) => board[y][x] = SNAKE);
+  [].concat(...largerEnemies.map(snake => validPositionsAround(snake.body[0]))).forEach(({x,y}) => board[y][x] = AVOID);
 
   const moves = shuffle(MOVES);
 
@@ -147,7 +148,9 @@ app.post('/move', (request, response) => {
       const current = board[newY][newX];
       let bonus = 0;
       if (current === SNAKE) {
-        return -100 + depth;
+        return -100 + (depth*2);
+      } else if (current === AVOID) {
+        bonus = -20;
       } else if (foodIsValuable && current === FOOD) {
         bonus = 150 - depth;
       }
@@ -179,7 +182,7 @@ app.post('/move', (request, response) => {
       // return -calculateNeighbours(board, newPos) + bonus;
       return calculateFreeArea(board, newPos, 2) + bonus; // 5x5 = max 25
     }
-    return -100 + depth;
+    return -100 + (depth*2);
   };
   const moveScores = moves.map(move => {
     return {
