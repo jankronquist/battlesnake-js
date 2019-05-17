@@ -77,6 +77,8 @@ const randomFrom = (array) => {
   return array[Math.floor(Math.random() * array.length)];
 };
 
+const searchDepth = process.env['SEARCH_DEPTH'] || 10;
+
 // Handle POST request to '/move'
 app.post('/move', (request, response) => {
   try {
@@ -161,7 +163,7 @@ app.post('/move', (request, response) => {
         bonus--;
       }
       const newPos = { x: newX, y: newY };
-      if (depth < 10) {
+      if (depth < searchDepth) {
         board[newY][newX] = SNAKE;
         const childScores = MOVES.map(move => calculateScore(board, newPos, move, depth + 1));
         board[newY][newX] = current;
