@@ -135,7 +135,7 @@ app.post('/move', (request, response) => {
     return free;
   };
 
-  const foodIsValuable = request.body.board.snakes.length > 1 ||
+  const foodIsValuable = request.body.board.snakes.length === 1 ||
                          largerEnemies.length > 0 || 
                          request.body.you.health < 50;
 
